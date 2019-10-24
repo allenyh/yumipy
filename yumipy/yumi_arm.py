@@ -980,6 +980,8 @@ class YuMiArm:
         YuMiControlException
             If commanded pose triggers any motion errors that are catchable by RAPID sever.
         '''
+        if width > 0.025:
+            width = 0.025
         lst = [width * METERS_TO_MM]
         if no_wait:
             lst.append(0)
