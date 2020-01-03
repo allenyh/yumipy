@@ -7,6 +7,7 @@ import logging
 import numpy as np
 try:
     import geometry_msgs
+    from geometry_msgs.msg import PoseStamped
     import moveit_commander
     import moveit_msgs
     import rospy
@@ -22,7 +23,7 @@ class YuMiMotionPlanner:
     """ Client-side motion planner for the ABB YuMi, based on MoveIt!
     """
     
-    def __init__(self, arm='left', planner='RRTstar',
+    def __init__(self, arm='left', planner='RRTConnect',
                  goal_pos_tol=0.001,
                  planning_time=0.1,
                  eef_delta=0.01,
@@ -34,14 +35,46 @@ class YuMiMotionPlanner:
         self._planning_time = planning_time
 
         self._init_planning_interface()
+        self._update_collision_object()
         self._update_planning_params()
         self.set_planner(planner)
 
     def _init_planning_interface(self):
         """ Initializes the MoveIn planning interface """
         self._robot_comm = moveit_commander.RobotCommander()
+        self.scene = moveit_commander.PlanningSceneInterface()
         self._planning_group = moveit_commander.MoveGroupCommander(self._arm)
         self._planning_group.set_pose_reference_frame(ymc.MOVEIT_PLANNING_REFERENCE_FRAME)
+
+    def _update_collision_object(self):
+        rospy.sleep(2)
+        rospy.loginfo("Update "+self._arm+" Collision Objects")
+        # table
+        self.scene.remove_world_object('table')
+        table_name = "table"
+        table_pose = PoseStamped()
+        table_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        table_pose.pose.orientation.w = 1.0
+        table_pose.pose.position.z = -0.01
+        self.scene.add_box(table_name, table_pose, size=(1.5, 1.5, 0.02))
+        # camera shelf
+        self.scene.remove_world_object('camera_shelf')
+        shelf_name = "camera_shelf"
+        shelf_pose = PoseStamped()
+        shelf_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        print("planning_frame: {}".format(shelf_pose.header.frame_id))
+        shelf_pose.pose.orientation.w = 1.0
+        shelf_pose.pose.position.z = 0.59
+        self.scene.add_box(shelf_name, shelf_pose, size=(0.7, 0.04, 0.04))
+        # camera
+        self.scene.remove_world_object('camera')
+        camera_name = "camera"
+        camera_pose = PoseStamped()
+        camera_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        camera_pose.pose.orientation.w = 1.0
+        camera_pose.pose.position.x = 0.35
+        camera_pose.pose.position.z = 0.555
+        self.scene.add_box(camera_name, camera_pose, size=(0.03, 0.09, 0.03))
 
     def _update_planning_params(self):
         """ Updates the parameters of the planner """
@@ -118,8 +151,8 @@ class YuMiMotionPlanner:
         if not isinstance(start_pose, RigidTransform) or not isinstance(goal_pose, RigidTransform):
             raise ValueError('Start and goal poses must be specified as RigidTransformations')
         # check valid frames
-        if start_pose.from_frame != 'gripper' or goal_pose.from_frame != 'gripper' or (start_pose.to_frame != 'world' and start_pose.to_frame != 'base') or (goal_pose.to_frame != 'world' and goal_pose.to_frame != 'base'):
-            raise ValueError('Start and goal poses must be from frame \'gripper\' to frame \{\'world\', \'base\'\}')
+        if start_pose.from_frame != 'tool' or goal_pose.from_frame != 'tool' or (start_pose.to_frame != 'world' and start_pose.to_frame != 'base') or (goal_pose.to_frame != 'world' and goal_pose.to_frame != 'base'):
+            raise ValueError('Start and goal poses must be from frame \'tool\' to frame \{\'world\', \'base\'\}')
             
         # set start state of planner
         start_state_msg = moveit_msgs.msg.RobotState()
@@ -128,7 +161,7 @@ class YuMiMotionPlanner:
             start_state_msg.joint_state.name = ['yumi_joint_%d_l' %i for i in range(1,8)]
         start_state_msg.joint_state.position = start_state.in_radians
         self._planning_group.set_start_state(start_state_msg)
-     
+
         # convert start and end pose to the planner's reference frame
         start_pose_hand = start_pose * ymc.T_GRIPPER_HAND
         goal_pose_hand = goal_pose * ymc.T_GRIPPER_HAND
@@ -136,9 +169,11 @@ class YuMiMotionPlanner:
         # get waypoints
         pose_traj = start_pose_hand.linear_trajectory_to(goal_pose_hand, traj_len)
         waypoints = [t.pose_msg for t in pose_traj]
+        print(waypoints)
 
         # plan plath
         plan, fraction = self._planning_group.compute_cartesian_path(waypoints, eef_delta, jump_thresh)
+        print(plan)
         if fraction >= 0.0 and fraction < 1.0:
             logging.warning('Failed to plan full path.')
             return None
@@ -146,7 +181,7 @@ class YuMiMotionPlanner:
             logging.warning('Error while planning path.')
             return None
 
-        # convert from moveit joint traj in radians 
+        # convert from moveit joint traj in radians
         joint_names = plan.joint_trajectory.joint_names
         joint_traj = []
         for t in plan.joint_trajectory.points:
@@ -185,8 +220,8 @@ class YuMiMotionPlanner:
             raise ValueError('Start and goal poses must be specified as RigidTransformations')
 
         # check valid frames
-        if start_pose.from_frame != 'gripper' or goal_pose.from_frame != 'gripper' or (start_pose.to_frame != 'world' and start_pose.to_frame != 'base') or (goal_pose.to_frame != 'world' and goal_pose.to_frame != 'base'):
-            raise ValueError('Start and goal poses must be from frame \'gripper\' to frame \{\'world\', \'base\'\}')
+        if start_pose.from_frame != 'tool' or goal_pose.from_frame != 'tool' or (start_pose.to_frame != 'world' and start_pose.to_frame != 'base') or (goal_pose.to_frame != 'world' and goal_pose.to_frame != 'base'):
+            raise ValueError('Start and goal poses must be from frame \'tool\' to frame \{\'world\', \'base\'\}')
             
         # set planning time
         self.planning_time = timeout
@@ -214,8 +249,11 @@ class YuMiMotionPlanner:
         joint_names = plan.joint_trajectory.joint_names
         joint_traj = []
         for t in plan.joint_trajectory.points:
+        #t = plan.joint_trajectory.points[-1]
+        #print("t:{}".format(t))
             joints_and_names = zip(joint_names, t.positions)
             joints_and_names.sort(key = lambda x: x[0])
             joint_traj.append(YuMiState([np.rad2deg(x[1]) for x in joints_and_names]))
+        #print("joint_traj:{}".format(joint_traj))
 
         return YuMiTrajectory(joint_traj)

@@ -87,7 +87,7 @@ class YuMiRobot:
                 raise RuntimeError("arm_type {0} for YuMiArm is not a valid arm type".format(arm_type))
             self._arms.append(self.right)
 
-        self.set_tool(self.tcp)
+        # self.set_tool(self.tcp)
         self.set_z('fine')
 
     def reset(self):

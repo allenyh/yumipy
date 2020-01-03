@@ -211,7 +211,8 @@ class YuMiArm:
             'gripper_max_speed': None,
         }
 
-        self._motion_planner = motion_planner
+        #self._motion_planner = motion_planner
+        self._motion_planner = YuMiMotionPlanner(arm=self._name)
 
     def reset_settings(self):
         '''Reset zone, tool, and speed settings to their last known values. This is used when reconnecting to the RAPID server after a server restart.
@@ -241,14 +242,14 @@ class YuMiArm:
 
         self.reset_settings()
 
-    def set_motion_planner(self, motion_planner):
+    def set_motion_planner(self):
         '''
         Parameters
         ----------
         motion_planner : YuMiMotionPlanner
                 Sets the current motion planner to the given motion planner.
         '''
-        self._motion_planner = motion_planner
+        self._motion_planner = YuMiMotionPlanner(arm=self._name)
 
     def flush_pose_histories(self, filename):
         '''
@@ -580,13 +581,13 @@ class YuMiArm:
         return self._request(req, wait_for_res, timeout=self._motion_timeout)
 
     def goto_pose_linear_path(self, pose, wait_for_res=True,
-                              traj_len=10, eef_delta=0.01, jump_thresh=0.0):
+                              traj_len=0, eef_delta=0.01, jump_thresh=0.0):
         """ Go to a pose via the shortest path in joint space """
         if self._motion_planner is None:
             raise ValueError('Motion planning not enabled')
 
         current_state = self.get_state()
-        current_pose = self.get_pose().as_frames('gripper', 'world')
+        current_pose = self.get_pose().as_frames('tool', 'base')
         traj = self._motion_planner.plan_linear_path(current_state, current_pose,
                                                      pose, traj_len=traj_len,
                                                      eef_delta=eef_delta,
@@ -602,7 +603,7 @@ class YuMiArm:
             raise ValueError('Motion planning not enabled')
 
         current_state = self.get_state()
-        current_pose = self.get_pose().as_frames('gripper', 'world')
+        current_pose = self.get_pose().as_frames('tool', 'world')
         traj = self._motion_planner.plan_shortest_path(current_state, current_pose,
                                                        pose, timeout=plan_timeout)
         if traj is None:
@@ -1226,7 +1227,7 @@ class YuMiArmFactory:
             return YuMiArm(name, port=YMC.PORTS[name]["server"])
         elif arm_type == 'remote':
             if ROS_ENABLED:
-                return YuMiArm_ROS('yumi_robot/{0}_arm'.format(name), namespace = ros_namespace)
+                return YuMiArm_ROS('{0}_arm'.format(name), namespace = ros_namespace)
             else:
                 raise RuntimeError("Remote YuMiArm is not enabled because yumipy is not installed as a catkin package")
         else:

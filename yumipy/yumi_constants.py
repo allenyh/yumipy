@@ -26,9 +26,9 @@ class YuMiConstants:
     }
     
     BUFSIZE = 4096
-    MOTION_TIMEOUT = 8
+    MOTION_TIMEOUT = 100
     COMM_TIMEOUT = 5
-    PROCESS_TIMEOUT = 10
+    PROCESS_TIMEOUT = 100
     PROCESS_SLEEP_TIME = 0.01
     MOTION_BUFFER_SIZE = 512
 
@@ -107,11 +107,11 @@ class YuMiConstants:
         'PRM': 'PRMkConfigDefault',
         'PRMstar': 'PRMstarkConfigDefault'
     }
-    MOVEIT_PLANNING_REFERENCE_FRAME = 'yumi_body'
+    MOVEIT_PLANNING_REFERENCE_FRAME = 'base_link'
     
     ROS_TIMEOUT = 10
     
-    T_GRIPPER_HAND = RigidTransform(translation=[0,0,-0.157], from_frame='gripper', to_frame='gripper')
+    T_GRIPPER_HAND = RigidTransform(translation=[0,0,0], from_frame='tool', to_frame='tool')
     
     TCP_ABB_GRIPPER = RigidTransform(translation=[0,0,0.13])
     TCP_ABB_GRASP_GRIPPER = RigidTransform(translation=[0,0,0.136-0.0065])

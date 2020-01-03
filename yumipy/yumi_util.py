@@ -35,7 +35,6 @@ def message_to_state(message):
             raise Exception("Invalid format for states! Got: \n{0}".format(message))
         state_vals = [float(token) for token in tokens]
         state = YuMiState(state_vals)
-
         return state
 
     except Exception, e:
