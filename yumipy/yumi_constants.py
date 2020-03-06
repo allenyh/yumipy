@@ -27,7 +27,7 @@ class YuMiConstants:
     
     BUFSIZE = 4096
     MOTION_TIMEOUT = 100
-    COMM_TIMEOUT = 5
+    COMM_TIMEOUT = 100
     PROCESS_TIMEOUT = 100
     PROCESS_SLEEP_TIME = 0.01
     MOTION_BUFFER_SIZE = 512
@@ -111,7 +111,8 @@ class YuMiConstants:
     
     ROS_TIMEOUT = 10
     
-    T_GRIPPER_HAND = RigidTransform(translation=[0,0,0], from_frame='tool', to_frame='tool')
+    T_GRIPPER_HAND = RigidTransform(translation=[0, 0, 0], from_frame='tool', to_frame='tool')
+    T_SUCTION_HAND = RigidTransform(translation=[-0.0635, -0.0185, 0.0985], from_frame='tool', to_frame='tool')
     
     TCP_ABB_GRIPPER = RigidTransform(translation=[0,0,0.13])
     TCP_ABB_GRASP_GRIPPER = RigidTransform(translation=[0,0,0.136-0.0065])

@@ -163,8 +163,9 @@ class YuMiRobot:
         if len(self._arms) != 2:
             raise Exception("Cannot goto pose sync when not both arms are included!")
 
-        self.left._goto_pose_sync(left_pose)
-        self.right._goto_pose_sync(right_pose)
+        res_left = self.left._goto_pose_sync(left_pose)
+        res_right = self.right._goto_pose_sync(right_pose)
+        return res_left.res_code and res_right.res_code
 
     def set_v(self, n):
         '''Sets speed for both arms using n as the speed number.

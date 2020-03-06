@@ -50,31 +50,40 @@ class YuMiMotionPlanner:
         rospy.sleep(2)
         rospy.loginfo("Update "+self._arm+" Collision Objects")
         # table
-        self.scene.remove_world_object('table')
+        self.scene.remove_world_object("table")
         table_name = "table"
         table_pose = PoseStamped()
         table_pose.header.frame_id = self._robot_comm.get_planning_frame()
         table_pose.pose.orientation.w = 1.0
+        table_pose.pose.position.x = 0.3
         table_pose.pose.position.z = -0.01
-        self.scene.add_box(table_name, table_pose, size=(1.5, 1.5, 0.02))
+        self.scene.add_box(table_name, table_pose, size=(0.6, 1.5, 0.02))
         # camera shelf
-        self.scene.remove_world_object('camera_shelf')
+        self.scene.remove_world_object("camera_shelf")
         shelf_name = "camera_shelf"
         shelf_pose = PoseStamped()
         shelf_pose.header.frame_id = self._robot_comm.get_planning_frame()
-        print("planning_frame: {}".format(shelf_pose.header.frame_id))
         shelf_pose.pose.orientation.w = 1.0
-        shelf_pose.pose.position.z = 0.59
-        self.scene.add_box(shelf_name, shelf_pose, size=(0.7, 0.04, 0.04))
+        shelf_pose.pose.position.z = 0.62
+        self.scene.add_box(shelf_name, shelf_pose, size=(0.75, 0.1, 0.05))
         # camera
-        self.scene.remove_world_object('camera')
+        self.scene.remove_world_object("camera")
         camera_name = "camera"
         camera_pose = PoseStamped()
         camera_pose.header.frame_id = self._robot_comm.get_planning_frame()
         camera_pose.pose.orientation.w = 1.0
-        camera_pose.pose.position.x = 0.35
-        camera_pose.pose.position.z = 0.555
-        self.scene.add_box(camera_name, camera_pose, size=(0.03, 0.09, 0.03))
+        camera_pose.pose.position.x = 0.363
+        camera_pose.pose.position.z = 0.575
+        self.scene.add_box(camera_name, camera_pose, size=(0.03, 0.1, 0.03))
+        # barcode detector
+        self.scene.remove_world_object("barcode_detector")
+        detector_name = "barcode_detector"
+        detector_pose = PoseStamped()
+        detector_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        detector_pose.pose.orientation.w = 1.0
+        detector_pose.pose.position.x = 0.45
+        detector_pose.pose.position.z = 0.61
+        self.scene.add_box(detector_name, detector_pose, size=(0.14, 0.06, 0.07))
 
     def _update_planning_params(self):
         """ Updates the parameters of the planner """
@@ -191,7 +200,7 @@ class YuMiMotionPlanner:
 
         return YuMiTrajectory(joint_traj)
 
-    def plan_shortest_path(self, start_state, start_pose, goal_pose, timeout=0.1):
+    def plan_shortest_path(self, start_state, start_pose, goal_pose, timeout=0.1, tool='gripper'):
         """
         Plans the shortest path in joint space between the start and goal pose from the initial joint configuration. The poses should be specified in the frame of reference of the end effector tip. Start state must correspond to the start pose - right now this is up to the user.
         
@@ -236,7 +245,10 @@ class YuMiMotionPlanner:
      
         # convert start and end pose to the planner's reference frame
         start_pose_hand = start_pose * ymc.T_GRIPPER_HAND
-        goal_pose_hand = goal_pose * ymc.T_GRIPPER_HAND
+        if tool == 'gripper':
+            goal_pose_hand = goal_pose * ymc.T_GRIPPER_HAND
+        elif tool == 'suction':
+            goal_pose_hand = goal_pose * ymc.T_SUCTION_HAND
 
         # plan plath
         self._planning_group.set_pose_target(goal_pose_hand.pose_msg)

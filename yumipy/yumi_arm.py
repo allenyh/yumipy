@@ -597,7 +597,7 @@ class YuMiArm:
         for state in traj:
             self.goto_state(state, wait_for_res=wait_for_res)
 
-    def goto_pose_shortest_path(self, pose, wait_for_res=True, plan_timeout=0.1):
+    def goto_pose_shortest_path(self, pose, tool, wait_for_res=True, plan_timeout=0.1):
         """ Go to a pose via the shortest path in joint space """
         if self._motion_planner is None:
             raise ValueError('Motion planning not enabled')
@@ -605,11 +605,23 @@ class YuMiArm:
         current_state = self.get_state()
         current_pose = self.get_pose().as_frames('tool', 'world')
         traj = self._motion_planner.plan_shortest_path(current_state, current_pose,
-                                                       pose, timeout=plan_timeout)
+                                                       pose, timeout=plan_timeout, tool=tool)
         if traj is None:
-            return
-        for state in traj:
+            return None
+        zone_data = {
+            'point_motion': 0,
+            'values': (50,75,7.5),
+        }
+        self.set_zone(zone_data=zone_data)
+        for index, state in enumerate(traj):
+            if index == traj.length-1:
+                zone_data = {
+                    'point_motion': 1,
+                    'values': (0, 0, 0)
+                }
+                self.set_zone(zone_data=zone_data)
             self.goto_state(state, wait_for_res=wait_for_res)
+        return "success"
 
     def goto_pose_delta(self, translation, rotation=None, wait_for_res=True):
         '''Goto a target pose by transforming the current pose using the given translation and rotation
