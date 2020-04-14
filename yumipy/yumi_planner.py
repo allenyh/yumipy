@@ -56,7 +56,7 @@ class YuMiMotionPlanner:
         table_pose.header.frame_id = self._robot_comm.get_planning_frame()
         table_pose.pose.orientation.w = 1.0
         table_pose.pose.position.x = 0.3
-        table_pose.pose.position.z = -0.01
+        table_pose.pose.position.z = -0.02
         self.scene.add_box(table_name, table_pose, size=(0.6, 1.5, 0.02))
         # camera shelf
         self.scene.remove_world_object("camera_shelf")
@@ -66,24 +66,56 @@ class YuMiMotionPlanner:
         shelf_pose.pose.orientation.w = 1.0
         shelf_pose.pose.position.z = 0.62
         self.scene.add_box(shelf_name, shelf_pose, size=(0.75, 0.1, 0.05))
+        # camera shelf left support
+        self.scene.remove_world_object("left_support")
+        left_support_name = "left_support"
+        left_support_pose = PoseStamped()
+        left_support_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        left_support_pose.pose.orientation.z = 0.3826834
+        left_support_pose.pose.orientation.w = 0.9238795
+        left_support_pose.pose.position.x = -0.21
+        left_support_pose.pose.position.y = -0.12
+        left_support_pose.pose.position.z = 0.62
+        self.scene.add_box(left_support_name, left_support_pose, size=(0.28, 0.04, 0.04))
+        # camera shelf right support
+        self.scene.remove_world_object("right_support")
+        right_support_name = "right_support"
+        right_support_pose = PoseStamped()
+        right_support_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        right_support_pose.pose.orientation.z = -0.3826834
+        right_support_pose.pose.orientation.w = 0.9238795
+        right_support_pose.pose.position.x = -0.21
+        right_support_pose.pose.position.y = 0.12
+        right_support_pose.pose.position.z = 0.62
+        self.scene.add_box(right_support_name, right_support_pose, size=(0.28, 0.04, 0.04))
         # camera
         self.scene.remove_world_object("camera")
         camera_name = "camera"
         camera_pose = PoseStamped()
         camera_pose.header.frame_id = self._robot_comm.get_planning_frame()
         camera_pose.pose.orientation.w = 1.0
-        camera_pose.pose.position.x = 0.363
+        camera_pose.pose.position.x = 0.343
         camera_pose.pose.position.z = 0.575
-        self.scene.add_box(camera_name, camera_pose, size=(0.03, 0.1, 0.03))
+        self.scene.add_box(camera_name, camera_pose, size=(0.06, 0.2, 0.03))
         # barcode detector
         self.scene.remove_world_object("barcode_detector")
         detector_name = "barcode_detector"
         detector_pose = PoseStamped()
         detector_pose.header.frame_id = self._robot_comm.get_planning_frame()
         detector_pose.pose.orientation.w = 1.0
-        detector_pose.pose.position.x = 0.45
-        detector_pose.pose.position.z = 0.61
-        self.scene.add_box(detector_name, detector_pose, size=(0.14, 0.06, 0.07))
+        detector_pose.pose.position.x = 0.47
+        detector_pose.pose.position.z = 0.62
+        self.scene.add_box(detector_name, detector_pose, size=(0.18, 0.08, 0.12))
+        # screen and teach box
+        self.scene.remove_world_object("screen_and_box")
+        sab_name = "screen_and_box"
+        sab_pose = PoseStamped()
+        sab_pose.header.frame_id = self._robot_comm.get_planning_frame()
+        sab_pose.pose.orientation.w = 1.0
+        sab_pose.pose.position.x = 0.3
+        sab_pose.pose.position.y = -0.48
+        sab_pose.pose.position.z = 0.35
+        self.scene.add_box(sab_name, sab_pose, size=(0.6, 0.01, 0.7))
 
     def _update_planning_params(self):
         """ Updates the parameters of the planner """
@@ -253,6 +285,11 @@ class YuMiMotionPlanner:
         # plan plath
         self._planning_group.set_pose_target(goal_pose_hand.pose_msg)
         plan = self._planning_group.plan()
+        count = 0
+        while count < 5 and len(plan.joint_trajectory.points) == 0:
+            plan = self._planning_group.plan()
+            count += 1
+
         if len(plan.joint_trajectory.points) == 0:
             logging.warning('Failed to plan path.')
             return None
